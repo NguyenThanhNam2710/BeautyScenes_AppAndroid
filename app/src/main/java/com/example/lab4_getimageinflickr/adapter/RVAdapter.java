@@ -50,7 +50,7 @@ public class RVAdapter extends RecyclerView.Adapter<RVAdapter.ViewHolder> {
                 alertDialog.setView(R.layout.dialog_showdetail);
                 final AlertDialog dialog = alertDialog.show();
                 ImageView imgFull = dialog.findViewById(R.id.imgFull);
-                Picasso.get().load(item.getUrlC()).into(imgFull);
+                Picasso.get().load(item.getUrlM()).into(imgFull);
 
                 TextView tvTitle = (TextView) dialog.findViewById(R.id.tvTitle);
                 TextView tvWidth = (TextView) dialog.findViewById(R.id.tvWidth);
