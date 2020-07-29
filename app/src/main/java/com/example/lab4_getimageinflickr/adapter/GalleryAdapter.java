@@ -42,6 +42,7 @@ public class GalleryAdapter extends RecyclerView.Adapter<GalleryAdapter.ViewHold
     private List<Gallery> listData;
     private ArrayList<Photo> listImage;
     private Context context;
+    private int mPager=1;
 
     public GalleryAdapter(List<Gallery> listData, Context context) {
         this.listData = listData;
@@ -71,14 +72,15 @@ public class GalleryAdapter extends RecyclerView.Adapter<GalleryAdapter.ViewHold
                 final AlertDialog dialog = alertDialog.show();
                 final RecyclerView rvGallery = dialog.findViewById(R.id.rvGallery);
                 final SwipeRefreshLayout mSrlLayoutG = dialog.findViewById(R.id.srlLayoutG);
-                getImagesGalleries(item.getGalleryId(), rvGallery);
+                getImagesGalleries(item.getGalleryId(), rvGallery,mPager);
                 mSrlLayoutG.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
                     @Override
                     public void onRefresh() {
                         new Handler().postDelayed(new Runnable() {
                             @Override
                             public void run() {
-                                getImagesGalleries(item.getGalleryId(), rvGallery);
+                                mPager++;
+                                getImagesGalleries(item.getGalleryId(), rvGallery,mPager);
                                 mSrlLayoutG.setRefreshing(false);
                             }
                         }, 2500);
@@ -103,7 +105,7 @@ public class GalleryAdapter extends RecyclerView.Adapter<GalleryAdapter.ViewHold
         }
     }
 
-    private void getImagesGalleries(String id, RecyclerView rvGallery) {
+    private void getImagesGalleries(String id, RecyclerView rvGallery, int mPage) {
 
 
         AndroidNetworking.post("https://www.flickr.com/services/rest")
@@ -113,8 +115,8 @@ public class GalleryAdapter extends RecyclerView.Adapter<GalleryAdapter.ViewHold
                 .addBodyParameter("format", "json")
                 .addBodyParameter("method", "flickr.galleries.getPhotos")
                 .addBodyParameter("nojsoncallback", "1")
-                .addBodyParameter("per_page", "1000")
-                .addBodyParameter("page", "0").build()
+                .addBodyParameter("per_page", "10")
+                .addBodyParameter("page", String.valueOf(mPage)).build()
                 .getAsJSONObject(new JSONObjectRequestListener() {
                     @Override
                     public void onResponse(JSONObject response) {

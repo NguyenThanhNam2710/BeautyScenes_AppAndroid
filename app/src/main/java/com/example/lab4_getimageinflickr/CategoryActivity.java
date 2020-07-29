@@ -3,6 +3,7 @@ package com.example.lab4_getimageinflickr;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -15,6 +16,7 @@ import com.androidnetworking.error.ANError;
 import com.androidnetworking.interfaces.JSONObjectRequestListener;
 import com.example.lab4_getimageinflickr.adapter.GalleryAdapter;
 import com.example.lab4_getimageinflickr.adapter.RVAdapter;
+import com.example.lab4_getimageinflickr.model.Galleries_;
 import com.example.lab4_getimageinflickr.model.Gallery;
 import com.example.lab4_getimageinflickr.model.Photo;
 import com.google.gson.Gson;
@@ -32,6 +34,7 @@ public class CategoryActivity extends AppCompatActivity implements SwipeRefreshL
     private ArrayList<Gallery> galleriesList;
     private ArrayList<Photo> listImage;
     private SwipeRefreshLayout mSrlLayout;
+    private int pages = 0, load = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,7 +43,6 @@ public class CategoryActivity extends AppCompatActivity implements SwipeRefreshL
         rvList = (RecyclerView) findViewById(R.id.rvList);
         mSrlLayout = (SwipeRefreshLayout) findViewById(R.id.srlLayout);
         mSrlLayout.setOnRefreshListener(this);
-
         setUpData();
     }
 
@@ -67,8 +69,8 @@ public class CategoryActivity extends AppCompatActivity implements SwipeRefreshL
                 .addBodyParameter("format", "json")
                 .addBodyParameter("method", "flickr.galleries.getList")
                 .addBodyParameter("nojsoncallback", "1")
-                .addBodyParameter("per_page", "1000")
-                .addBodyParameter("page", "0").build()
+                .addBodyParameter("per_page", "10")
+                .addBodyParameter("page", String.valueOf(load)).build()
                 .getAsJSONObject(new JSONObjectRequestListener() {
                     @Override
                     public void onResponse(JSONObject response) {
@@ -76,7 +78,10 @@ public class CategoryActivity extends AppCompatActivity implements SwipeRefreshL
                         JSONObject galleries = null;
                         try {
                             galleries = response.getJSONObject("galleries");
+                            Galleries_ galleries_ = new Gson().fromJson(galleries.toString(), Galleries_.class);
                             Log.e("galleries", galleries.toString() + "");
+                            pages = galleries_.getPages();
+                            Log.e("pages", galleries_.getPages().toString());
                             JSONArray gallery = galleries.getJSONArray("gallery");
                             Log.e("gallery_length", gallery.length() + "");
                             galleriesList = new Gson().fromJson(gallery.toString(), new TypeToken<ArrayList<Gallery>>() {
@@ -88,7 +93,19 @@ public class CategoryActivity extends AppCompatActivity implements SwipeRefreshL
                             StaggeredGridLayoutManager staggeredGridLayoutManager = new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL);
                             rvList.setLayoutManager(staggeredGridLayoutManager);
                             GalleryAdapter mAdapter = new GalleryAdapter(galleriesList, CategoryActivity.this);
+                            EndlessRecyclerViewScrollListener endlessRecyclerViewScrollListener = new EndlessRecyclerViewScrollListener(staggeredGridLayoutManager) {
+                                @Override
+                                public void onLoadMore(int page, int totalItemsCount, RecyclerView view) {
+                                    if (pages > 1) {
+                                        loadGallery(load++);
+                                    } else {
+                                        Log.e("onLoadMore: ", "okea");
+                                    }
+                                }
+                            };
+                            rvList.addOnScrollListener(endlessRecyclerViewScrollListener);
                             rvList.setAdapter(mAdapter);
+
 
                         } catch (JSONException e) {
                             e.printStackTrace();
@@ -102,4 +119,43 @@ public class CategoryActivity extends AppCompatActivity implements SwipeRefreshL
                 });
     }
 
+    private void loadGallery(int page) {
+        AndroidNetworking.post("https://www.flickr.com/services/rest")
+                .addBodyParameter("api_key", "71e2a9a70ac5d577d67e353e03938a96")
+                .addBodyParameter("user_id", "187043301@N04")
+                .addBodyParameter("extras", "views, media, path_alias, url_sq, url_t, url_s, url_q, url_m, url_n, url_z, url_c, url_l, url_o")
+                .addBodyParameter("format", "json")
+                .addBodyParameter("method", "flickr.galleries.getList")
+                .addBodyParameter("nojsoncallback", "1")
+                .addBodyParameter("per_page", "10")
+                .addBodyParameter("page", "1").build()
+                .getAsJSONObject(new JSONObjectRequestListener() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        Log.e("response", response.toString() + "");
+                        JSONObject galleries = null;
+                        try {
+                            galleries = response.getJSONObject("galleries");
+                            Galleries_ galleries_ = new Gson().fromJson(galleries.toString(), Galleries_.class);
+                            Log.e("galleries", galleries.toString() + "");
+                            pages = galleries_.getPages();
+                            Log.e("pages", galleries_.getPages().toString());
+                            JSONArray gallery = galleries.getJSONArray("gallery");
+                            Log.e("gallery_length", gallery.length() + "");
+                            galleriesList = new Gson().fromJson(gallery.toString(), new TypeToken<ArrayList<Gallery>>() {
+                            }.getType());
+                            for (int i = 0; i < galleriesList.size(); i++) {
+                                Log.e("image[" + i + "]", galleriesList.get(i).getGalleryId());
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    @Override
+                    public void onError(ANError anError) {
+
+                    }
+                });
+    }
 }
